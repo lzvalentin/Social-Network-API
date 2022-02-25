@@ -72,24 +72,48 @@ const userController = {
                 });
                 return;
             }
-                res.json(userData);
-            }).catch((err) => res.status(500).json(err));
+            res.json(userData);
+        }).catch((err) => res.status(500).json(err));
     },
-    addFriend({params}, res){
+    addFriend({ params }, res) {
         User.findOneAndUpdate({
             _id: params.id
         }, {
-            $addToSet:{
+            $addToSet: {
                 friends: paramas.friendsId
             }
         }, {
             new: true
         }).then((userData) => res.json(userData))
-        .catch((err) => (400).json(err));    
-    }, 
+            .catch((err) => (400).json(err));
+    },
+    removeFriend({ params }, res) {
+        User.findOneAndUpdate({
+            _id: params.id
+        },
+            {
+                $pull: {
+                    friends: params.friendsId
+                }
+            },
+            {
+                new: true
+            })
+            .then((userData) => {
+                if (!userData) {
+                    res.status(404)({
+                        message: "Invalid ID"
+                    });
+                    return;
+                }
+                res.json(userData);
+            }).catch((err) => res.status(500).json(err))
+    },
 
 
-}
- 
+};
+
+module.exports= userController
+
 
 
