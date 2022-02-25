@@ -46,7 +46,7 @@ const userController = {
 
     },
 
-    updateUser({ params, body }, res) {
+    updateUserById({ params, body }, res) {
         User.findOneAndUpdate({
             _id: params.id
         },
@@ -62,7 +62,7 @@ const userController = {
             res.json(userData);
         }).catch((err) => res.status(500).json(err));
     },
-    deleteUser({ params }, res) {
+    deleteUserById({ params }, res) {
         User.findOneAndDelete({
             _id: params.id
         }).then((userData) => {
