@@ -2,15 +2,8 @@ const { User } = require("../models");
 
 const userController = {
     getAllUsers(req, res) {
-        User.find({})
-            .populate({
-                path: "thoughts",
-                select: "-__v",
-            })
+        User.find()
             .select("-__v")
-            .sort({
-                _id: -1
-            })
             .then((userData) => res.json(userData))
             .catch((err) => {
                 console.log(err);
@@ -20,22 +13,21 @@ const userController = {
     },
     getUserByID(req, res) {
         User.findOne({
-            _id: params.id
-        })
-            .populate({
-                path: "thoughts",
-                select: "-__v",
-            })
-            .select("-__v")
+            _id: req.params.userId
+        }).select("-__v")
+            .populate("friends")
+            .populate("thoughts")
             .then((userData) => {
                 if (!userData) {
-                    res.status(500).json({
+                    return res.status(404).json({
                         message: "No user Found"
                     });
-                    return;
                 }
                 res.json(userData);
+            }).catch(err => {
+                res.status(500).json(err)
             })
+
     },
     createUser(req, res) {
         User.create(req.body)
@@ -47,12 +39,17 @@ const userController = {
     },
 
     updateUserById({ params, body }, res) {
-        User.findOneAndUpdate({
-            _id: params.id
-        },
-            body, {
-            new: true
-        }).then((userData) => {
+        User.findOneAndUpdate(
+            {
+                _id: params.userId
+            },
+            {
+                $set: body
+            },
+            {
+                new: true
+            }
+        ).then((userData) => {
             if (!userData) {
                 res.status(404)({
                     message: "Invalid ID"
@@ -64,7 +61,7 @@ const userController = {
     },
     deleteUserById({ params }, res) {
         User.findOneAndDelete({
-            _id: params.id
+            _id: params.userId
         }).then((userData) => {
             if (!userData) {
                 res.status(404)({
@@ -72,33 +69,40 @@ const userController = {
                 });
                 return;
             }
-            res.json(userData);
+            res.json({ message: "user has been deleted" });
         }).catch((err) => res.status(500).json(err));
     },
     addFriend({ params }, res) {
-        User.findOneAndUpdate({
-            _id: params.id
-        }, {
-            $addToSet: {
-                friends: paramas.friendsId
-            }
-        }, {
-            new: true
-        }).then((userData) => res.json(userData))
-            .catch((err) => (400).json(err));
-    },
-    removeFriend({ params }, res) {
-        User.findOneAndUpdate({
-            _id: params.id
-        },
+        User.findOneAndUpdate(
             {
-                $pull: {
-                    friends: params.friendsId
+                _id: params.userId
+            },
+            {
+                $addToSet: {
+                    friends: params.friendId
                 }
             },
             {
                 new: true
-            })
+            }
+        )
+            .then((userData) => res.json(userData))
+            .catch((err) => res.status(400).json(err));
+    },
+    removeFriend({ params }, res) {
+        User.findOneAndUpdate(
+            {
+                _id: params.userId
+            },
+            {
+                $pull: {
+                    friends: params.friendId
+                }
+            },
+            {
+                new: true
+            }
+        )
             .then((userData) => {
                 if (!userData) {
                     res.status(404)({
@@ -106,14 +110,14 @@ const userController = {
                     });
                     return;
                 }
-                res.json(userData);
+                res.json({message: "deleted friend"});
             }).catch((err) => res.status(500).json(err))
     },
 
 
 };
 
-module.exports= userController
+module.exports = userController
 
 
 
