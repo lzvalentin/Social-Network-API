@@ -4,31 +4,22 @@ const { Thought, User } = require("../models");
 
 const thoughtController = {
     getAllThoughts(req, res) {
-        Thought.find({})
-            .populate({
-                path: "reactions",
-                select: "-__v",
-            })
-            .populate({
-                path: "thoughts",
-                select: "-__v",
-            }).select("-__v")
+        Thought.find()
             .then((thoughtData) => res.json(thoughtData))
             .catch((err) => {
                 console.log(err);
-                res.stauts(404).json(err);
+                res.status(404).json(err);
             });
     },
     // get one thought by ID
     getThoughtById({ params }, res) {
         Thought.findOne({
-            _id: params.id
+            _id: params.thoughtId
         }).then((thoughtData) => {
             if (!thoughtData) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: "No thought related to this ID"
                 });
-                return;
             }
             res.json(thoughtData);
         }).catch((err) => {
@@ -36,15 +27,18 @@ const thoughtController = {
             res.status(400).json(err);
         });
     },
+
     createThought({ body }, res) {
         console.log(body);
         Thought.create(body)
             .then((thoughtData) => {
-                return User.findOneAndUpdate({
-                    _id: body.userId
-                }, {
-                    $push: { thoughts: thoughtData._id }
-                }, {
+                return User.findOneAndUpdate(
+                    {
+                        _id: body.userId
+                    },
+                    {
+                        $push: { thoughts: thoughtData._id }
+                    }, {
                     new: true
                 });
             }).then((userData) => {
@@ -57,9 +51,10 @@ const thoughtController = {
                 res.json(userData);
             }).catch((err) => res.json(err));
     },
+
     updateThought({ params, body }, res) {
         Thought.findOneAndUpdate({
-            _id: params.id
+            _id: params.thoughtId
         }, body, {
             new: true
         }).then((thoughtData) => {
@@ -77,21 +72,23 @@ const thoughtController = {
     // delete
     deleteThought({ params }, res) {
         Thought.findOneAndDelete({
-            _id: params.id
+            _id: params.thoughtId
         }).then((thoughtData) => {
             if (!thoughtData) {
                 res.status(404).json({
                     message: "No thought related to this ID"
                 });
                 return;
-            } res.json(thoughtData);
+            } res.json({
+                message: "thought is deleted"
+            });
 
         }).catch((err) => res.status(500).json(err));
 
     },
-    addReaction({ params }, body) {
+    addReaction({ params, body }, res) {
         Thought.findOneAndUpdate({
-            _id: params.thoughId
+            _id: params.thoughtId
         }, {
             $addToSet: {
                 reactions: body
@@ -110,20 +107,24 @@ const thoughtController = {
     },
     deleteReaction({ params }, res) {
         // findeone&update or deleteOne
-        Thought.findOneAndUpdate({
-                _id: params.thoughtid  
-    }, {
-        $pull: {
-            reactions: {
-                reactionId: params.reactionId
-            }
-        }
-    }, {
-        new: true,
+        Thought.findOneAndUpdate(
+            {
+                _id: params.thoughtId
+            },
+            {
+                $pull: {
+                    reactions:
+                    {
+                        reactionId: params.reactionId
+                    }
+                }
+            },
+            {
+                new: true,
 
-    })
-        .then((thoughtData) => res.json(thoughtData))
-    .catch((err) => res.status(500).json(err));
+            })
+            .then((thoughtData) => res.json(thoughtData))
+            .catch((err) => res.status(500).json(err));
 
     },
 };
